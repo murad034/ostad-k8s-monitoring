@@ -1,0 +1,114 @@
+# Gitignore for Kubernetes Monitoring Project
+
+# Secrets and credentials
+*.pem
+*.key
+secrets/
+*.secret
+
+# Grafana
+grafana.db
+grafana/data/
+*.log
+
+# Prometheus
+prometheus/data/
+*.tsdb
+
+# Loki
+loki/data/
+
+# Kubernetes
+kubeconfig
+*.kubeconfig
+
+# Screenshots (optional - remove if you want to commit screenshots)
+# docs/screenshots/*.png
+# docs/screenshots/*.jpg
+
+# Logs
+logs/
+*.log
+nohup.out
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Helm
+charts/*.tgz
+*.lock
+
+# Backup files
+*.bak
+*.backup
+backup/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Node modules (if using any JS tools)
+node_modules/
+
+# Python (if using any Python scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+ENV/
+
+# Terraform (if using)
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Personal notes
+notes/
+TODO.md
+NOTES.md
+
+# Generated files
+generated/
+dist/
+build/
+
+# Certificate files
+*.crt
+*.pem
+*.key
+*.csr
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Compressed files
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Report drafts (keep final report)
+*-draft.*

@@ -1,0 +1,19 @@
+# ServiceMonitor for the sample Nginx application
+# This enables Prometheus to scrape metrics from the application
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nginx-metrics
+  namespace: application
+  labels:
+    app: nginx
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  endpoints:
+    - port: http
+      interval: 30s
+      path: /metrics
