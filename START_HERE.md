@@ -26,6 +26,7 @@ This project contains **EVERYTHING** you need:
 ### ⚠️ Files are on YOUR WINDOWS MACHINE - Need to Transfer to EC2!
 
 **Critical Step**: These files are currently on your local Windows computer at:
+
 ```
 D:\laragon\www\devops\ostad-2025\assignment\k8-monitoring
 ```

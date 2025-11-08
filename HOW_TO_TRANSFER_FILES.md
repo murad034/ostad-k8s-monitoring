@@ -7,6 +7,7 @@ You have the project files on your **local Windows machine**, but you need them 
 ## 📋 Quick Summary
 
 **Best Methods** (Choose ONE):
+
 1. ✅ **Git/GitHub** (Recommended - Professional & Easy)
 2. ✅ **SCP/SFTP** (Direct Transfer - Fast)
 3. ✅ **Copy-Paste** (Simple - For small files)
@@ -60,6 +61,7 @@ ls -la
 ```
 
 ### ✅ Advantages:
+
 - Professional approach
 - Version control
 - Easy to update: just `git pull`
@@ -85,6 +87,7 @@ scp -i "C:\Users\YourName\Downloads\my-key.pem" -r k8-monitoring ubuntu@54.123.4
 ```
 
 **Explanation**:
+
 - `-i "path\to\key.pem"` = Your SSH key
 - `-r` = Recursive (copy entire folder)
 - `k8-monitoring` = Source folder
@@ -107,6 +110,7 @@ ls -la ~/k8-monitoring
 ```
 
 ### ✅ Advantages:
+
 - Very fast
 - Single command
 - No third-party services needed
@@ -118,6 +122,7 @@ ls -la ~/k8-monitoring
 **Why?** Visual interface, drag-and-drop
 
 ### Step 1: Download WinSCP
+
 - Download from: https://winscp.net/
 - Install on Windows
 
@@ -142,6 +147,7 @@ ls -la ~/k8-monitoring
 5. Done!
 
 ### ✅ Advantages:
+
 - Visual interface
 - Easy for beginners
 - Can browse files easily
@@ -177,6 +183,7 @@ nano k8-monitoring/scripts/01-ec2-setup.sh
 ```
 
 ### ⚠️ Limitations:
+
 - Tedious for many files
 - Risk of copy errors
 - Not recommended for 30+ files
@@ -211,6 +218,7 @@ ls -la k8-monitoring/
 ```
 
 ### ✅ Advantages:
+
 - Single file transfer
 - Faster for many files
 - Preserves structure
@@ -311,6 +319,7 @@ chmod +x scripts/*.sh
 **Problem**: SSH key not recognized
 
 **Solution**:
+
 ```powershell
 # Windows - Set key permissions
 icacls "C:\path\to\key.pem" /inheritance:r
@@ -325,6 +334,7 @@ scp -i "C:\Users\YourName\Downloads\key.pem" -r k8-monitoring ubuntu@IP:~/
 **Problem**: Security group doesn't allow SSH
 
 **Solution**:
+
 1. Go to EC2 Console → Security Groups
 2. Find your instance's security group
 3. Add inbound rule: SSH (22) from Your IP
@@ -335,6 +345,7 @@ scp -i "C:\Users\YourName\Downloads\key.pem" -r k8-monitoring ubuntu@IP:~/
 **Problem**: File permissions not set
 
 **Solution**:
+
 ```bash
 # On EC2
 cd k8-monitoring
@@ -350,6 +361,7 @@ ls -la scripts/
 **Problem**: Scripts have Windows CRLF instead of Linux LF
 
 **Solution**:
+
 ```bash
 # On EC2, convert line endings
 sudo apt install dos2unix -y
@@ -365,13 +377,13 @@ sed -i 's/\r$//' *.sh
 
 ## 📊 Method Comparison
 
-| Method | Speed | Difficulty | Best For | Cost |
-|--------|-------|------------|----------|------|
-| **Git/GitHub** | ⭐⭐⭐ | ⭐⭐ | Professional projects | Free |
-| **SCP** | ⭐⭐⭐⭐⭐ | ⭐⭐ | Quick transfers | Free |
-| **WinSCP** | ⭐⭐⭐⭐ | ⭐ | Beginners | Free |
-| **Copy-Paste** | ⭐ | ⭐ | 1-2 files | Free |
-| **Zip Transfer** | ⭐⭐⭐⭐ | ⭐⭐ | Many files | Free |
+| Method           | Speed      | Difficulty | Best For              | Cost |
+| ---------------- | ---------- | ---------- | --------------------- | ---- |
+| **Git/GitHub**   | ⭐⭐⭐     | ⭐⭐       | Professional projects | Free |
+| **SCP**          | ⭐⭐⭐⭐⭐ | ⭐⭐       | Quick transfers       | Free |
+| **WinSCP**       | ⭐⭐⭐⭐   | ⭐         | Beginners             | Free |
+| **Copy-Paste**   | ⭐         | ⭐         | 1-2 files             | Free |
+| **Zip Transfer** | ⭐⭐⭐⭐   | ⭐⭐       | Many files            | Free |
 
 ---
 
