@@ -32,11 +32,31 @@ echo ""
 echo "[2/3] Starting Minikube cluster..."
 echo "This may take a few minutes..."
 
+# Detect available memory
+AVAILABLE_MEM=$(free -m | awk '/^Mem:/{print $7}')
+echo "Available memory: ${AVAILABLE_MEM}MB"
+
+# Set memory based on availability
+if [ "$AVAILABLE_MEM" -lt 2500 ]; then
+    MINIKUBE_MEMORY=1800
+    MINIKUBE_CPUS=1
+    echo "⚠️  Low memory detected. Starting with minimal configuration..."
+    echo "⚠️  For better performance, use t3.medium or larger instance type"
+elif [ "$AVAILABLE_MEM" -lt 5000 ]; then
+    MINIKUBE_MEMORY=2048
+    MINIKUBE_CPUS=2
+    echo "Starting with reduced memory configuration..."
+else
+    MINIKUBE_MEMORY=4096
+    MINIKUBE_CPUS=2
+    echo "Starting with recommended configuration..."
+fi
+
 # Start Minikube with specific configuration
 minikube start \
     --driver=docker \
-    --cpus=2 \
-    --memory=4096 \
+    --cpus=$MINIKUBE_CPUS \
+    --memory=$MINIKUBE_MEMORY \
     --disk-size=20g \
     --kubernetes-version=stable \
     --extra-config=kubelet.housekeeping-interval=10s
