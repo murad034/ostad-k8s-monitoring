@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
       - name: esim-backend
-        image: murad034/esim-backend:latest  # Your existing image
+        image: murad034/esim-backend:v2  # Your existing image
         imagePullPolicy: Always
         ports:
         - containerPort: 3000

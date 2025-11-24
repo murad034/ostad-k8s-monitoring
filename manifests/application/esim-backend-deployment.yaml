@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
       - name: esim-backend
-        image: murad034/esim-backend:latest  # Replace with your Docker Hub username
+        image: murad034/esim-backend:v2  # Replace with your Docker Hub username
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
