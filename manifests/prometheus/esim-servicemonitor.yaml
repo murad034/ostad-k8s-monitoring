@@ -1,0 +1,21 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: esim-backend-monitor
+  namespace: monitoring
+  labels:
+    app: esim-backend
+    release: prometheus  # Important: matches kube-prometheus-stack release name
+spec:
+  selector:
+    matchLabels:
+      app: esim-backend
+  namespaceSelector:
+    matchNames:
+    - esim
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: http

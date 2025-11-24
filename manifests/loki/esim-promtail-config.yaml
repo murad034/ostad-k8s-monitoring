@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail-esim-config
+  namespace: monitoring
+data:
+  promtail.yaml: |
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 0
+
+    positions:
+      filename: /tmp/positions.yaml
+
+    clients:
+      - url: http://loki:3100/loki/api/v1/push
+
+    scrape_configs:
+      # eSIM Backend logs
+      - job_name: esim-backend
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: esim-backend
+              namespace: esim
+              __path__: /var/log/pods/esim_esim-backend-*/*/*.log
+
+        pipeline_stages:
+          - docker: {}
+          - json:
+              expressions:
+                timestamp: timestamp
+                level: level
+                message: message
+                method: method
+                path: path
+                status: status
+          - labels:
+              level:
+              method:
+              status:
+          - timestamp:
+              source: timestamp
+              format: RFC3339
