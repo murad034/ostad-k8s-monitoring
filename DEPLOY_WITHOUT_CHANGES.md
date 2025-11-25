@@ -51,6 +51,21 @@ docker push YOUR_DOCKERHUB_USERNAME/esim-backend:latest
 
 ### Step 3: Deploy to Kubernetes
 
+**Option A: Automated Deployment (Recommended)**
+
+```bash
+# On your EC2 instance
+cd ~/ostad-k8s-monitoring
+
+# Make script executable
+chmod +x scripts/deploy-esim-no-changes.sh
+
+# Run deployment script
+./scripts/deploy-esim-no-changes.sh
+```
+
+**Option B: Manual Deployment**
+
 ```bash
 # On your EC2 instance
 kubectl apply -f manifests/application/esim-backend-no-changes.yaml
