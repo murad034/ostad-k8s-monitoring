@@ -68,5 +68,45 @@ metadata:
   name: esim-backend-config
   namespace: esim
 data:
+  # Application
   NODE_ENV: "production"
   PORT: "3000"
+  APP_NAME: "eSIM Platform Backend"
+  
+  # API Version
+  TGT_API_VERSION: "1.0"
+  
+  # API URLs
+  TGT_API_BASE_URL: "http://enterpriseapiuat.tugegroup.com:8060"
+  PG_BASE_URL: "https://dev-esim-pg.oss.net.bd"
+  PG_VERIFICATION_URL: "https://dev-esim-pg.oss.net.bd/pgs/payment-verification"
+  BKASH_BASE_URL: "https://tokenized.sandbox.bka.sh/v1.2.0-beta"
+  NAGAD_BASE_URL: "https://api.mynagad.com:10618"
+  SMS_API_URL_FOR_TOKEN: "https://idp.oss.net.bd/auth/realms/dev/protocol/openid-connect/token"
+  EMAIL_API_URL_FOR_SEND: "https://api-k8s.oss.net.bd/api/broker-service/email/send_email"
+  
+  # File Upload
+  UPLOAD_DEST: "./uploads"
+  MAX_FILE_SIZE: "5242880"
+  
+  # Rate Limiting
+  RATE_LIMIT_TTL: "60"
+  RATE_LIMIT_MAX: "100"
+  
+  # CORS
+  CORS_ORIGIN: "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000"
+  CORS_CREDENTIALS: "true"
+  
+  # Webhook
+  WEBHOOK_BASE_URL: "http://localhost:8082"
+  
+  # Logging
+  LOG_LEVEL: "info"
+  LOG_FILE_ENABLED: "true"
+  LOG_FILE_PATH: "./logs"
+  
+  # Frontend URL
+  FRONTEND_URL: "http://localhost:3000"
+  
+  # SMS/Email
+  SMS_GRANT_TYPE: "client_credentials"
