@@ -79,7 +79,8 @@ show_status() {
     
     local services=("prometheus-grafana:Grafana" \
                    "prometheus-kube-prometheus-prometheus:Prometheus" \
-                   "nginx-service:Nginx")
+                   "nginx-service:Nginx" \
+                   "esim-backend:eSIM-Backend")
     
     for entry in "${services[@]}"; do
         IFS=':' read -r service name <<< "$entry"
@@ -121,6 +122,17 @@ case "$1" in
             start_port_forward "application" "nginx-service" "8080" "80" "Nginx"
         fi
         
+        # Start eSIM Backend (optional)
+        if [ "$2" == "--with-esim" ]; then
+            start_port_forward "esim" "esim-backend" "3001" "3000" "eSIM-Backend"
+        fi
+        
+        # Start both apps
+        if [ "$2" == "--with-all" ]; then
+            start_port_forward "application" "nginx-service" "8080" "80" "Nginx"
+            start_port_forward "esim" "esim-backend" "3001" "3000" "eSIM-Backend"
+        fi
+        
         echo ""
         show_status
         
@@ -129,6 +141,13 @@ case "$1" in
         echo "  Prometheus: http://<EC2-IP>:9090"
         if [ "$2" == "--with-app" ]; then
             echo "  Nginx:      http://<EC2-IP>:8080"
+        fi
+        if [ "$2" == "--with-esim" ]; then
+            echo "  eSIM Backend: http://<EC2-IP>:3001"
+        fi
+        if [ "$2" == "--with-all" ]; then
+            echo "  Nginx:        http://<EC2-IP>:8080"
+            echo "  eSIM Backend: http://<EC2-IP>:3001"
         fi
         echo ""
         ;;
@@ -146,6 +165,8 @@ case "$1" in
             stop_port_forward "prometheus-kube-prometheus-prometheus" "Prometheus"
         elif [ "$2" == "nginx" ]; then
             stop_port_forward "nginx-service" "Nginx"
+        elif [ "$2" == "esim" ]; then
+            stop_port_forward "esim-backend" "eSIM-Backend"
         else
             stop_all
         fi
@@ -171,6 +192,15 @@ case "$1" in
             start_port_forward "application" "nginx-service" "8080" "80" "Nginx"
         fi
         
+        if [ "$2" == "--with-esim" ]; then
+            start_port_forward "esim" "esim-backend" "3001" "3000" "eSIM-Backend"
+        fi
+        
+        if [ "$2" == "--with-all" ]; then
+            start_port_forward "application" "nginx-service" "8080" "80" "Nginx"
+            start_port_forward "esim" "esim-backend" "3001" "3000" "eSIM-Backend"
+        fi
+        
         echo ""
         show_status
         ;;
@@ -179,9 +209,10 @@ case "$1" in
         show_status
         
         echo "Log files:"
-        echo "  Grafana:    /tmp/pf-Grafana.log"
-        echo "  Prometheus: /tmp/pf-Prometheus.log"
-        echo "  Nginx:      /tmp/pf-Nginx.log"
+        echo "  Grafana:      /tmp/pf-Grafana.log"
+        echo "  Prometheus:   /tmp/pf-Prometheus.log"
+        echo "  Nginx:        /tmp/pf-Nginx.log"
+        echo "  eSIM Backend: /tmp/pf-eSIM-Backend.log"
         echo ""
         ;;
         
@@ -201,6 +232,9 @@ case "$1" in
             nginx)
                 tail -f /tmp/pf-Nginx.log
                 ;;
+            esim)
+                tail -f /tmp/pf-eSIM-Backend.log
+                ;;
             *)
                 print_error "Unknown service: $2"
                 exit 1
@@ -216,20 +250,30 @@ case "$1" in
         echo "Usage: $0 {start|stop|restart|status|logs} [options]"
         echo ""
         echo "Commands:"
-        echo "  start [--with-app]   Start port forwards (optionally include nginx)"
-        echo "  stop [service]       Stop port forwards (all or specific service)"
-        echo "  restart [--with-app] Restart port forwards"
-        echo "  status               Show port forward status"
-        echo "  logs <service>       Show logs for service (grafana|prometheus|nginx)"
+        echo "  start [--with-app|--with-esim|--with-all]   Start port forwards"
+        echo "  stop [service]                                Stop port forwards"
+        echo "  restart [--with-app|--with-esim|--with-all]  Restart port forwards"
+        echo "  status                                        Show port forward status"
+        echo "  logs <service>                                Show logs for service"
+        echo ""
+        echo "Options:"
+        echo "  --with-app    Include Nginx application"
+        echo "  --with-esim   Include eSIM backend"
+        echo "  --with-all    Include both Nginx and eSIM"
+        echo ""
+        echo "Services:"
+        echo "  grafana, prometheus, nginx, esim"
         echo ""
         echo "Examples:"
-        echo "  $0 start                    # Start Grafana and Prometheus"
-        echo "  $0 start --with-app         # Start Grafana, Prometheus, and Nginx"
-        echo "  $0 stop                     # Stop all port forwards"
-        echo "  $0 stop grafana             # Stop only Grafana"
-        echo "  $0 restart --with-app       # Restart all including Nginx"
-        echo "  $0 status                   # Show current status"
-        echo "  $0 logs grafana             # Show Grafana port forward logs"
+        echo "  $0 start                      # Start Grafana and Prometheus only"
+        echo "  $0 start --with-app           # Start with Nginx"
+        echo "  $0 start --with-esim          # Start with eSIM backend"
+        echo "  $0 start --with-all           # Start with both apps"
+        echo "  $0 stop                       # Stop all port forwards"
+        echo "  $0 stop esim                  # Stop only eSIM backend"
+        echo "  $0 restart --with-all         # Restart all services"
+        echo "  $0 status                     # Show current status"
+        echo "  $0 logs esim                  # Show eSIM backend logs"
         echo ""
         exit 1
         ;;

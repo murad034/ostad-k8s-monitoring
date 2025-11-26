@@ -31,13 +31,26 @@ fi
 
 echo -e "${GREEN}✓ Minikube is running${NC}"
 
+# Check if Grafana is running
+echo -e "${YELLOW}Step 2: Check Grafana${NC}"
+if ! kubectl get svc -n monitoring grafana-simple &> /dev/null; then
+    echo "Grafana not found. Deploying standalone Grafana..."
+    kubectl create deployment grafana --image=grafana/grafana:latest -n monitoring 2>/dev/null || true
+    kubectl expose deployment grafana --port=3000 --target-port=3000 --type=ClusterIP --name=grafana-simple -n monitoring 2>/dev/null || true
+    echo "Waiting for Grafana to be ready..."
+    kubectl wait --for=condition=ready pod -l app=grafana -n monitoring --timeout=120s || echo "Grafana may still be starting..."
+    echo -e "${GREEN}✓ Grafana deployed${NC}"
+else
+    echo -e "${GREEN}✓ Grafana is already running${NC}"
+fi
+
 # Verify Docker image
-echo -e "${YELLOW}Step 2: Verify Docker image${NC}"
+echo -e "${YELLOW}Step 3: Verify Docker image${NC}"
 IMAGE_NAME="murad034/esim-backend:v2"
 echo "Using image: $IMAGE_NAME"
 
 # Delete existing deployment if exists
-echo -e "${YELLOW}Step 3: Clean up existing deployment${NC}"
+echo -e "${YELLOW}Step 4: Clean up existing deployment${NC}"
 if kubectl get namespace esim &> /dev/null; then
     echo "Deleting existing esim namespace..."
     kubectl delete namespace esim --wait=true || true
@@ -45,7 +58,7 @@ if kubectl get namespace esim &> /dev/null; then
 fi
 
 # Deploy eSIM backend
-echo -e "${YELLOW}Step 4: Deploy eSIM backend${NC}"
+echo -e "${YELLOW}Step 5: Deploy eSIM backend${NC}"
 kubectl apply -f manifests/application/esim-backend-no-changes.yaml
 
 # Wait for namespace to be ready
@@ -53,7 +66,7 @@ echo "Waiting for namespace..."
 kubectl wait --for=jsonpath='{.status.phase}'=Active namespace/esim --timeout=60s
 
 # Wait for pods to be ready
-echo -e "${YELLOW}Step 5: Wait for pods to be ready${NC}"
+echo -e "${YELLOW}Step 6: Wait for pods to be ready${NC}"
 echo "This may take a few minutes..."
 kubectl wait --for=condition=ready pod -l app=esim-backend -n esim --timeout=300s || {
     echo -e "${RED}Pods failed to start. Checking status...${NC}"
@@ -63,7 +76,7 @@ kubectl wait --for=condition=ready pod -l app=esim-backend -n esim --timeout=300
 }
 
 # Get pod status
-echo -e "${YELLOW}Step 6: Verify deployment${NC}"
+echo -e "${YELLOW}Step 7: Verify deployment${NC}"
 echo ""
 echo "Pods:"
 kubectl get pods -n esim
@@ -73,7 +86,7 @@ kubectl get svc -n esim
 echo ""
 
 # Test backend
-echo -e "${YELLOW}Step 7: Test backend connection${NC}"
+echo -e "${YELLOW}Step 8: Test backend connection${NC}"
 POD_NAME=$(kubectl get pods -n esim -l app=esim-backend -o jsonpath='{.items[0].metadata.name}')
 echo "Testing pod: $POD_NAME"
 
@@ -85,7 +98,7 @@ kubectl exec -n esim $POD_NAME -- wget -qO- http://localhost:3000 > /dev/null 2>
 }
 
 # Show logs
-echo -e "${YELLOW}Step 8: Recent logs${NC}"
+echo -e "${YELLOW}Step 9: Recent logs${NC}"
 kubectl logs -n esim -l app=esim-backend --tail=20
 
 echo ""
