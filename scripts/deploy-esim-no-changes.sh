@@ -57,21 +57,23 @@ if kubectl get namespace esim &> /dev/null; then
     sleep 5
 fi
 
-# Deploy secrets first
-echo -e "${YELLOW}Step 5: Deploy secrets and ConfigMap${NC}"
+# Create namespace first
+echo -e "${YELLOW}Step 5: Create namespace${NC}"
+kubectl create namespace esim 2>/dev/null || echo "Namespace already exists"
+kubectl wait --for=jsonpath='{.status.phase}'=Active namespace/esim --timeout=60s
+echo -e "${GREEN}✓ Namespace ready${NC}"
+
+# Deploy secrets and ConfigMap
+echo -e "${YELLOW}Step 6: Deploy secrets and ConfigMap${NC}"
 kubectl apply -f manifests/application/esim-secrets.yaml
 echo -e "${GREEN}✓ Secrets applied${NC}"
 
 # Deploy eSIM backend
-echo -e "${YELLOW}Step 6: Deploy eSIM backend${NC}"
+echo -e "${YELLOW}Step 7: Deploy eSIM backend${NC}"
 kubectl apply -f manifests/application/esim-backend-no-changes.yaml
 
-# Wait for namespace to be ready
-echo "Waiting for namespace..."
-kubectl wait --for=jsonpath='{.status.phase}'=Active namespace/esim --timeout=60s
-
 # Wait for pods to be ready
-echo -e "${YELLOW}Step 7: Wait for pods to be ready${NC}"
+echo -e "${YELLOW}Step 8: Wait for pods to be ready${NC}"
 echo "This may take a few minutes..."
 kubectl wait --for=condition=ready pod -l app=esim-backend -n esim --timeout=300s || {
     echo -e "${RED}Pods failed to start. Checking status...${NC}"
@@ -81,7 +83,7 @@ kubectl wait --for=condition=ready pod -l app=esim-backend -n esim --timeout=300
 }
 
 # Get pod status
-echo -e "${YELLOW}Step 8: Verify deployment${NC}"
+echo -e "${YELLOW}Step 9: Verify deployment${NC}"
 echo ""
 echo "Pods:"
 kubectl get pods -n esim
@@ -91,13 +93,13 @@ kubectl get svc -n esim
 echo ""
 
 # Verify environment variables
-echo -e "${YELLOW}Step 9: Verify environment variables${NC}"
+echo -e "${YELLOW}Step 10: Verify environment variables${NC}"
 POD_NAME=$(kubectl get pods -n esim -l app=esim-backend -o jsonpath='{.items[0].metadata.name}')
 echo "Checking environment in pod: $POD_NAME"
 kubectl exec -n esim $POD_NAME -- env | grep -E "DB_HOST|DB_PORT|NODE_ENV" || echo "Environment variables loading..."
 
 # Test backend
-echo -e "${YELLOW}Step 10: Test backend connection${NC}"
+echo -e "${YELLOW}Step 11: Test backend connection${NC}"
 # Check if pod is accessible
 kubectl exec -n esim $POD_NAME -- wget -qO- http://localhost:3000 > /dev/null 2>&1 && {
     echo -e "${GREEN}✓ Backend is responding${NC}"
@@ -106,7 +108,7 @@ kubectl exec -n esim $POD_NAME -- wget -qO- http://localhost:3000 > /dev/null 2>
 }
 
 # Show logs
-echo -e "${YELLOW}Step 11: Recent logs${NC}"
+echo -e "${YELLOW}Step 12: Recent logs${NC}"
 kubectl logs -n esim -l app=esim-backend --tail=20
 
 echo ""
