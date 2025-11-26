@@ -17,7 +17,7 @@ NC='\033[0m'
 
 VPN_HOST="103.143.148.217"
 VPN_USER="murad"
-VPN_PASS="Md5\$b\$yT6myUsT"
+VPN_PASS='Md5$b$yT6myUsT'
 VPN_NAME="dhakacolo3"
 
 # Check if PPTP is installed
@@ -47,10 +47,12 @@ echo -e "${GREEN}✓ Peer configuration created${NC}"
 
 # Create credentials file
 echo -e "${YELLOW}Step 3: Configure credentials${NC}"
-sudo tee /etc/ppp/chap-secrets > /dev/null <<EOF
+# Use printf to avoid issues with special characters
+sudo bash -c "cat > /etc/ppp/chap-secrets" <<'EOF'
 # Secrets for authentication using CHAP
 # client        server  secret                  IP addresses
-${VPN_USER}     ${VPN_NAME}     ${VPN_PASS}     *
+murad     dhakacolo3     "Md5$b$yT6myUsT"     *
+murad     *              "Md5$b$yT6myUsT"     *
 EOF
 sudo chmod 600 /etc/ppp/chap-secrets
 echo -e "${GREEN}✓ Credentials configured${NC}"
@@ -65,7 +67,7 @@ nodeflate
 refuse-eap
 refuse-pap
 refuse-chap
-refuse-mschap
+require-mschap-v2
 require-mppe-128
 EOF
 echo -e "${GREEN}✓ PPP options configured${NC}"
