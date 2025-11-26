@@ -75,10 +75,29 @@ kubectl apply -f manifests/application/esim-backend-no-changes.yaml
 # Wait for pods to be ready
 echo -e "${YELLOW}Step 8: Wait for pods to be ready${NC}"
 echo "This may take a few minutes..."
+
+# First wait for pods to exist
+echo "Waiting for pods to be created..."
+for i in {1..30}; do
+    POD_COUNT=$(kubectl get pods -n esim -l app=esim-backend --no-headers 2>/dev/null | wc -l)
+    if [ "$POD_COUNT" -gt 0 ]; then
+        echo "Pod found!"
+        break
+    fi
+    echo "Waiting for pod creation... ($i/30)"
+    sleep 2
+done
+
+# Then wait for pods to be ready
 kubectl wait --for=condition=ready pod -l app=esim-backend -n esim --timeout=300s || {
     echo -e "${RED}Pods failed to start. Checking status...${NC}"
     kubectl get pods -n esim
+    echo ""
+    echo "Pod details:"
     kubectl describe pods -n esim
+    echo ""
+    echo "Recent events:"
+    kubectl get events -n esim --sort-by='.lastTimestamp' | tail -20
     exit 1
 }
 
