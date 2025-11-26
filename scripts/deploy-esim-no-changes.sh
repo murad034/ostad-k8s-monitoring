@@ -109,7 +109,10 @@ kubectl get pods -n esim
 echo ""
 echo "Services:"
 kubectl get svc -n esim
-echo ""
+echo ""# Wait a few seconds, then check
+ip addr show ppp0
+ip route
+ping 10.10.200.60
 
 # Verify environment variables
 echo -e "${YELLOW}Step 10: Verify environment variables${NC}"
