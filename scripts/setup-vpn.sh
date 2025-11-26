@@ -35,13 +35,17 @@ echo -e "${YELLOW}Step 2: Configure VPN peer${NC}"
 sudo tee /etc/ppp/peers/${VPN_NAME} > /dev/null <<EOF
 pty "pptp ${VPN_HOST} --nolaunchpppd"
 name ${VPN_USER}
+password ${VPN_PASS}
 remotename ${VPN_NAME}
+require-mschap-v2
 require-mppe-128
-file /etc/ppp/options.pptp
-ipparam ${VPN_NAME}
-defaultroute
-replacedefaultroute
-usepeerdns
+refuse-eap
+refuse-pap
+refuse-chap
+noauth
+persist
+maxfail 0
+holdoff 20
 EOF
 echo -e "${GREEN}✓ Peer configuration created${NC}"
 
@@ -51,8 +55,7 @@ echo -e "${YELLOW}Step 3: Configure credentials${NC}"
 sudo bash -c "cat > /etc/ppp/chap-secrets" <<'EOF'
 # Secrets for authentication using CHAP
 # client        server  secret                  IP addresses
-murad     dhakacolo3     "Md5$b$yT6myUsT"     *
-murad     *              "Md5$b$yT6myUsT"     *
+murad dhakacolo3 Md5$b$yT6myUsT *
 EOF
 sudo chmod 600 /etc/ppp/chap-secrets
 echo -e "${GREEN}✓ Credentials configured${NC}"
