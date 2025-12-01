@@ -71,6 +71,11 @@ data:
   PORT: "3000"
   APP_NAME: "eSIM Platform Backend"
   
+  # Database SSL (Required for RDS)
+  DB_SSL: "true"
+  DB_DIALECT: "postgres"
+  DB_SSL_REJECT_UNAUTHORIZED: "false"
+  
   # API Version
   TGT_API_VERSION: "1.0"
   
