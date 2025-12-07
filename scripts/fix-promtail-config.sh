@@ -31,7 +31,8 @@ kubectl logs -n monitoring -l app=promtail --tail=20
 
 echo ""
 echo "7. Verifying Docker container access..."
-kubectl exec -n monitoring -l app=promtail -- ls -la /var/lib/docker/containers/ | head -10
+PROMTAIL_POD=$(kubectl get pod -n monitoring -l app=promtail -o jsonpath='{.items[0].metadata.name}')
+kubectl exec -n monitoring $PROMTAIL_POD -- ls -la /var/lib/docker/containers/ | head -10
 
 echo ""
 echo "8. Checking ConfigMap was applied..."
