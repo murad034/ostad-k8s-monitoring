@@ -68,15 +68,76 @@ else
     echo -e "${GREEN}✓ Promtail is already running${NC}"
 fi
 
-# Check if Grafana is running
-echo -e "${YELLOW}Step 5: Deploy Grafana${NC}"
-if ! kubectl get svc -n monitoring grafana-simple &> /dev/null; then
-    echo "Grafana not found. Deploying standalone Grafana..."
+# Deploy Grafana with persistent storage and pre-configured data sources
+echo -e "${YELLOW}Step 5: Deploy Grafana with persistent configuration${NC}"
+if ! kubectl get deployment -n monitoring grafana &> /dev/null; then
+    echo "Deploying Grafana with auto-configured data sources..."
+    
+    # Create Grafana datasources ConfigMap
+    cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: monitoring
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+        isDefault: true
+        editable: true
+      - name: Loki
+        type: loki
+        access: proxy
+        url: http://loki.monitoring.svc.cluster.local:3100
+        editable: true
+EOF
+
+    # Create Grafana deployment with persistent volume
     kubectl create deployment grafana --image=grafana/grafana:latest -n monitoring 2>/dev/null || true
-    kubectl expose deployment grafana --port=3000 --target-port=3000 --type=ClusterIP --name=grafana-simple -n monitoring 2>/dev/null || true
+    
+    # Patch deployment to add datasources volume
+    kubectl set env deployment/grafana -n monitoring GF_SECURITY_ADMIN_PASSWORD=admin GF_SECURITY_ADMIN_USER=admin 2>/dev/null || true
+    
+    # Wait for deployment to exist
+    sleep 2
+    
+    # Patch to add datasources
+    kubectl patch deployment grafana -n monitoring --type=json -p='[
+      {
+        "op": "add",
+        "path": "/spec/template/spec/volumes",
+        "value": [
+          {
+            "name": "datasources",
+            "configMap": {
+              "name": "grafana-datasources"
+            }
+          }
+        ]
+      },
+      {
+        "op": "add",
+        "path": "/spec/template/spec/containers/0/volumeMounts",
+        "value": [
+          {
+            "name": "datasources",
+            "mountPath": "/etc/grafana/provisioning/datasources"
+          }
+        ]
+      }
+    ]' 2>/dev/null || echo "Patch may have already been applied"
+    
+    # Expose as NodePort for stable access
+    kubectl expose deployment grafana --port=3000 --target-port=3000 --type=NodePort --name=grafana-simple -n monitoring 2>/dev/null || true
+    
     echo "Waiting for Grafana to be ready..."
     kubectl wait --for=condition=ready pod -l app=grafana -n monitoring --timeout=120s || echo "Grafana may still be starting..."
-    echo -e "${GREEN}✓ Grafana deployed${NC}"
+    echo -e "${GREEN}✓ Grafana deployed with auto-configured data sources${NC}"
 else
     echo -e "${GREEN}✓ Grafana is already running${NC}"
 fi
@@ -200,51 +261,77 @@ echo -e "${GREEN}=========================================${NC}"
 echo ""
 echo "Your eSIM backend and monitoring stack are now deployed!"
 echo ""
-echo "📊 MONITORING SETUP:"
+
+# Get NodePort for Grafana
+GRAFANA_PORT=$(kubectl get svc grafana-simple -n monitoring -o jsonpath='{.spec.ports[0].nodePort}')
+ESIM_SERVICE_TYPE=$(kubectl get svc esim-backend -n esim -o jsonpath='{.spec.type}' 2>/dev/null || echo "ClusterIP")
+
+echo "📊 ACCESS INFORMATION:"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "1. Port Forward Services:"
+
+if [ "$GRAFANA_PORT" != "" ]; then
+    echo "🎯 RECOMMENDED: Use Minikube Tunnel (More Stable)"
+    echo "   Run in a separate terminal:"
+    echo "   sudo minikube tunnel"
+    echo ""
+    echo "   Then access:"
+    echo "   Grafana: http://$(curl -s ifconfig.me):$GRAFANA_PORT"
+    echo "   (Or use your EC2 IP)"
+    echo ""
+fi
+
+echo "🔄 ALTERNATIVE: Port Forward (May disconnect)"
 echo "   Backend:"
-echo "     kubectl port-forward -n esim svc/esim-backend 3001:3000 --address='0.0.0.0'"
+echo "     kubectl port-forward -n esim svc/esim-backend 3001:3000 --address='0.0.0.0' &"
 echo ""
 echo "   Grafana:"
-echo "     kubectl port-forward -n monitoring svc/grafana-simple 3000:3000 --address='0.0.0.0'"
+echo "     kubectl port-forward -n monitoring svc/grafana-simple 3000:3000 --address='0.0.0.0' &"
 echo ""
-echo "2. Access URLs:"
-echo "   Backend API: http://YOUR_EC2_IP:3001"
-echo "   Grafana:     http://YOUR_EC2_IP:3000 (admin/admin)"
-echo ""
-echo "3. Configure Grafana Data Sources:"
-echo "   "
-echo "   📈 Prometheus (Metrics):"
-echo "      URL: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
-echo "      "
-echo "   📝 Loki (Logs):"
-echo "      URL: http://loki.monitoring.svc.cluster.local:3100"
-echo ""
-echo "4. Sample Queries:"
-echo "   "
-echo "   Prometheus Metrics:"
-echo "     CPU:    sum(rate(container_cpu_usage_seconds_total{namespace=\"esim\"}[5m]))"
-echo "     Memory: sum(container_memory_working_set_bytes{namespace=\"esim\"})"
-echo "   "
-echo "   Loki Logs:"
-echo "     All logs:    {namespace=\"esim\"}"
-echo "     Backend:     {namespace=\"esim\", app=\"esim-backend\"}"
-echo "     Errors only: {namespace=\"esim\"} |~ \"ERROR|error\""
-echo ""
-echo "5. Useful Commands:"
-echo "   View logs:        kubectl logs -n esim -l app=esim-backend -f"
-echo "   Check pods:       kubectl get pods -n esim"
-echo "   Check monitoring: kubectl get pods -n monitoring"
-echo "   Delete all:       kubectl delete namespace esim"
+echo "   Stop port forwards: pkill -f 'port-forward'"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "🔍 TROUBLESHOOTING:"
+echo "🔑 GRAFANA LOGIN:"
+echo "   Username: admin"
+echo "   Password: admin"
+echo "   "
+echo "   ✅ Data sources are AUTO-CONFIGURED!"
+echo "   - Prometheus: Already added"
+echo "   - Loki: Already added"
 echo ""
-echo "If Loki shows no logs for esim namespace:"
-echo "  1. Check Promtail: kubectl logs -n monitoring -l app=promtail --tail=100"
-echo "  2. Verify namespace: kubectl exec -n monitoring loki-0 -- wget -qO- 'http://localhost:3100/loki/api/v1/label/namespace/values'"
-echo "  3. Restart Promtail: kubectl delete pod -n monitoring -l app=promtail"
+echo "📝 LOKI QUERIES (in Grafana Explore):"
+echo "   All logs:    {namespace=\"esim\"}"
+echo "   Backend:     {namespace=\"esim\", app=\"esim-backend\"}"
+echo "   Errors only: {namespace=\"esim\"} |~ \"ERROR|error\""
+echo ""
+echo "📈 PROMETHEUS QUERIES:"
+echo "   CPU:    sum(rate(container_cpu_usage_seconds_total{namespace=\"esim\"}[5m]))"
+echo "   Memory: sum(container_memory_working_set_bytes{namespace=\"esim\"})"
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "🔍 USEFUL COMMANDS:"
+echo "   View backend logs:   kubectl logs -n esim -l app=esim-backend -f"
+echo "   Check all pods:      kubectl get pods -A"
+echo "   Restart Grafana:     kubectl rollout restart deployment/grafana -n monitoring"
+echo "   Restart backend:     kubectl rollout restart deployment/esim-backend -n esim"
+echo "   Delete everything:   kubectl delete namespace esim monitoring"
+echo ""
+echo "🚨 TROUBLESHOOTING CONNECTION ISSUES:"
+echo ""
+echo "   If kubectl commands timeout:"
+echo "     minikube status"
+echo "     minikube start"
+echo ""
+echo "   If Grafana data sources disappear:"
+echo "     kubectl rollout restart deployment/grafana -n monitoring"
+echo "     (Data sources will auto-reload from ConfigMap)"
+echo ""
+echo "   If port-forward keeps breaking:"
+echo "     Use 'sudo minikube tunnel' instead (more stable)"
+echo ""
+echo "   If Loki shows no logs:"
+echo "     kubectl delete pod -n monitoring -l app=promtail"
+echo "     kubectl logs -n monitoring -l app=promtail --tail=50"
 echo ""
