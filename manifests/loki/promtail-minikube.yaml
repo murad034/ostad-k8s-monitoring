@@ -16,53 +16,78 @@ data:
       - url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
 
     scrape_configs:
-      # Primary job: Scrape all Kubernetes pods using containerd/docker logs
+      # Scrape all Docker container logs
+      - job_name: docker
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: docker
+              __path__: /var/lib/docker/containers/*/*-json.log
+        
+        pipeline_stages:
+          - json:
+              expressions:
+                output: log
+                stream: stream
+          - output:
+              source: output
+          
+          # Extract labels from Docker labels
+          - docker: {}
+          
+          # Try to extract Kubernetes metadata from log path
+          - regex:
+              expression: '^/var/lib/docker/containers/(?P<container_id>[^/]+)/.*'
+              source: filename
+          
+          - labels:
+              container_id:
+              stream:
+      
+      # Kubernetes pod discovery for better labels
       - job_name: kubernetes-pods
         kubernetes_sd_configs:
           - role: pod
+        
         pipeline_stages:
           - docker: {}
-          - match:
-              selector: '{namespace="esim"}'
-              stages:
-                - regex:
-                    expression: '(?P<level>INFO|WARN|ERROR|DEBUG|info|warn|error|debug)'
-                - labels:
-                    level:
+        
         relabel_configs:
+          # Drop if no container ID (not a pod)
+          - source_labels: [__meta_kubernetes_pod_container_id]
+            action: keep
+            regex: .+
+          
           # Namespace
-          - source_labels:
-              - __meta_kubernetes_namespace
+          - source_labels: [__meta_kubernetes_namespace]
             target_label: namespace
+          
           # Pod name
-          - source_labels:
-              - __meta_kubernetes_pod_name
+          - source_labels: [__meta_kubernetes_pod_name]
             target_label: pod
+          
           # Container name
-          - source_labels:
-              - __meta_kubernetes_pod_container_name
+          - source_labels: [__meta_kubernetes_pod_container_name]
             target_label: container
+          
           # App label
-          - source_labels:
-              - __meta_kubernetes_pod_label_app
+          - source_labels: [__meta_kubernetes_pod_label_app]
             target_label: app
-          # Node name
-          - source_labels:
-              - __meta_kubernetes_pod_node_name
-            target_label: node
-          # Job label
-          - replacement: $1
-            separator: /
-            source_labels:
-              - __meta_kubernetes_namespace
-              - __meta_kubernetes_pod_label_app
-            target_label: job
-          # Container ID - try to construct log path
-          - replacement: /var/lib/docker/containers/*$1/*-json.log
-            separator: /
-            source_labels:
-              - __meta_kubernetes_pod_container_id
+          
+          # Extract container ID and map to Docker log path
+          - source_labels: [__meta_kubernetes_pod_container_id]
+            regex: 'docker://(.+)'
+            target_label: __tmp_container_id
+          
+          # Set path to Docker container logs
+          - source_labels: [__tmp_container_id]
             target_label: __path__
+            replacement: /var/lib/docker/containers/${1}/*-json.log
+          
+          # Clean up tmp label
+          - regex: __tmp_(.+)
+            action: labeldrop
 ---
 apiVersion: apps/v1
 kind: DaemonSet
